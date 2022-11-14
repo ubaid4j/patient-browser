@@ -480,8 +480,17 @@ export function request(options) {
         )
     })
 }
+function translateLocalHostToServerHost(resourceURL, _serverURL) {
+    const url = new URL(resourceURL);
+    const serverURL = new URL(_serverURL);
+    url.hostname = serverURL.hostname;
+    return url.toString();
+}
 
-export function getAllPages(options, result = []) {
+export function getAllPages(options, result = [], serverURL = null) {
+    if (result.length === 0 && serverURL === null) {
+        serverURL = options.url;
+    }
     return request(options).then(bundle => {
         (bundle.entry || []).forEach(item => {
             if (item.fullUrl && result.findIndex(o => (o.fullUrl === item.fullUrl)) == -1) {
@@ -490,7 +499,8 @@ export function getAllPages(options, result = []) {
         })
         let nextUrl = getBundleURL(bundle, "next");
         if (nextUrl) {
-            return getAllPages({ ...options, url: nextUrl }, result);
+            nextUrl = translateLocalHostToServerHost(nextUrl, serverURL);
+            return getAllPages({ ...options, url: nextUrl }, result, serverURL);
         }
         return result;
     });
